@@ -1638,6 +1638,12 @@ static void gp_proto0_write(URL_FILE *file, CopyState pstate)
 		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_POSTFIELDSIZE error (%d - %s)",
 			 e, curl_easy_strerror(e));
 
+	/* set sequence number */
+	char seq[128] = {0};
+	snprintf(seq, sizeof(seq), INT64_FORMAT, file->u.curl.seq_number);
+	
+	replace_httpheader(file, "X-GP-SEQ", seq);
+
     /* post away! */
     if (CURLE_OK != (e = curl_easy_perform(curl->handle)))
 		elog(ERROR, "%s error (%d - %s)",
@@ -1648,7 +1654,8 @@ static void gp_proto0_write(URL_FILE *file, CopyState pstate)
 	if (check_response(file, &response_code, &response_string))
 		elog(ERROR, "error while writing data to gpfdist on %s (code %d, msg %s)",
 				file->u.curl.curl_url, response_code, response_string);
-
+	
+	file->u.curl.seq_number++;
 }
 
 /*
